@@ -1,453 +1,247 @@
-import React, { useState } from 'react';
-
-// Data awal (Angka dalam TONASE)
-const INITIAL_DATA = [
-    { id: 1, type: "ADV-1", proj: 4, retail: 2, weight: 50 },
-    { id: 2, type: "ADV-2", proj: 0, retail: 0, weight: 50 },
-    { id: 3, type: "D-1", proj: 219, retail: 1664, weight: 50 },
-    { id: 4, type: "D-2", proj: 4010, retail: 673, weight: 50 },
-    { id: 5, type: "D-2TR", proj: 30, retail: 0, weight: 50 },
-    { id: 6, type: "D-2X", proj: 32, retail: 0, weight: 50 },
-    { id: 7, type: "D-3", proj: 179, retail: 235, weight: 50 },
-    { id: 8, type: "D-3SW", proj: 12, retail: 37, weight: 50 },
-    { id: 9, type: "D-4", proj: 336, retail: 0, weight: 50 },
-    { id: 10, type: "K-1", proj: 243, retail: 102, weight: 50 },
-    { id: 11, type: "K-2", proj: 260, retail: 75, weight: 50 },
-    { id: 12, type: "K-3", proj: 0, retail: 11, weight: 50 },
-    { id: 13, type: "K-5", proj: 32, retail: 0, weight: 50 },
-    { id: 14, type: "KN-1", proj: 0, retail: 1, weight: 50 },
-    { id: 15, type: "KN-2", proj: 0, retail: 0, weight: 50 },
-    { id: 16, type: "L-1", proj: 243, retail: 0, weight: 50 },
-    { id: 17, type: "L-3", proj: 0, retail: 32, weight: 50 },
-    { id: 18, type: "L-4", proj: 0, retail: 2, weight: 50 },
-    { id: 19, type: "Migrout", proj: 4, retail: 0, weight: 25 },
-    { id: 20, type: "MIPlus", proj: 0, retail: 16, weight: 25 },
-    { id: 21, type: "MIPro", proj: 0, retail: 512, weight: 25 },
-    { id: 22, type: "MIProof", proj: 2, retail: 0, weight: 20 },
-];
-
-const Icon = ({ name, size = 18, className }) => {
-    const icons = {
-        calculator: <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />, 
-        download: <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />,
-        trash: <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />,
-        plus: <path d="M12 5v14M5 12h14" />,
-        truck: <path d="M1 3h15v13H1zM16 8h4l3 3v5h-7V8zM5.5 19a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3M18.5 19a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3" />,
-        info: <g><circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" /></g>
-    };
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalkulator Stok & Logistik</title>
     
-    return (
-        <svg 
-            xmlns="http://www.w3.org/2000/svg" 
-            width={size} 
-            height={size} 
-            viewBox="0 0 24 24" 
-            fill="none" 
-            stroke="currentColor" 
-            strokeWidth="2" 
-            strokeLinecap="round" 
-            strokeLinejoin="round" 
-            className={className}
-        >
-            {icons[name] || icons.info}
-        </svg>
-    );
-};
-
-const App = () => {
-    // Settings Umum
-    const [workDays, setWorkDays] = useState(22);
+    <!-- React, ReactDOM, dan Babel -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
-    // Kapasitas Truk (TON)
-    const CAPACITY_CDD = 8; 
-    const CAPACITY_TRONTON = 32; 
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+    <div id="root"></div>
 
-    // Settings Project
-    const [leadTimeProj, setLeadTimeProj] = useState(7);
-    const [safetyBufferProj, setSafetyBufferProj] = useState(20);
+    <script type="text/babel">
+        const { useState } = React;
 
-    // Settings Retail
-    const [leadTimeRetail, setLeadTimeRetail] = useState(3);
-    const [safetyBufferRetail, setSafetyBufferRetail] = useState(15);
-
-    const [items, setItems] = useState(INITIAL_DATA);
-    const [newItemType, setNewItemType] = useState("");
-
-    // Rumus Kalkulasi Stok (Input & Output dalam TON)
-    const calculateStock = (totalSalesTons, leadTime, bufferPercent) => {
-        if (totalSalesTons <= 0) return { avg: 0, minStock: 0 };
+        // --- PASTE KODE INITIAL_DATA, Icon, dan App DI SINI ---
         
-        const avgDailyTons = totalSalesTons / workDays;
-        const demandDuringLeadTime = avgDailyTons * leadTime;
-        const safetyStock = demandDuringLeadTime * (bufferPercent / 100);
-        
-        // Pembulatan ke atas untuk keamanan (dalam Ton)
-        const minStockTons = Math.ceil(demandDuringLeadTime + safetyStock);
-        
-        return {
-            avg: avgDailyTons.toFixed(2),
-            minStock: minStockTons
-        };
-    };
+        // Data awal (Angka dalam TONASE)
+        const INITIAL_DATA = [
+            { id: 1, type: "ADV-1", proj: 4, retail: 2, weight: 50 },
+            { id: 2, type: "ADV-2", proj: 0, retail: 0, weight: 50 },
+            { id: 3, type: "D-1", proj: 219, retail: 1664, weight: 50 },
+            { id: 4, type: "D-2", proj: 4010, retail: 673, weight: 50 },
+            { id: 5, type: "D-2TR", proj: 30, retail: 0, weight: 50 },
+            { id: 6, type: "D-2X", proj: 32, retail: 0, weight: 50 },
+            { id: 7, type: "D-3", proj: 179, retail: 235, weight: 50 },
+            { id: 8, type: "D-3SW", proj: 12, retail: 37, weight: 50 },
+            { id: 9, type: "D-4", proj: 336, retail: 0, weight: 50 },
+            { id: 10, type: "K-1", proj: 243, retail: 102, weight: 50 },
+            { id: 11, type: "K-2", proj: 260, retail: 75, weight: 50 },
+            { id: 12, type: "K-3", proj: 0, retail: 11, weight: 50 },
+            { id: 13, type: "K-5", proj: 32, retail: 0, weight: 50 },
+            { id: 14, type: "KN-1", proj: 0, retail: 1, weight: 50 },
+            { id: 15, type: "KN-2", proj: 0, retail: 0, weight: 50 },
+            { id: 16, type: "L-1", proj: 243, retail: 0, weight: 50 },
+            { id: 17, type: "L-3", proj: 0, retail: 32, weight: 50 },
+            { id: 18, type: "L-4", proj: 0, retail: 2, weight: 50 },
+            { id: 19, type: "Migrout", proj: 4, retail: 0, weight: 25 },
+            { id: 20, type: "MIPlus", proj: 0, retail: 16, weight: 25 },
+            { id: 21, type: "MIPro", proj: 0, retail: 512, weight: 25 },
+            { id: 22, type: "MIProof", proj: 2, retail: 0, weight: 20 },
+        ];
 
-    // Rumus Logistik (Input Ton -> Output Truk)
-    const calculateLogistics = (tons, truckCapacityTons) => {
-        if (tons <= 0) return { trucks: 0, percentage: 0 };
-        
-        const trucksNeeded = tons / truckCapacityTons;
-        
-        return {
-            trucks: trucksNeeded.toFixed(1), // 1 desimal (cth: 0.5 Truk)
-            percentage: Math.min((tons / truckCapacityTons) * 100, 100) // Untuk progress bar
-        };
-    };
-
-    // Estimasi Sak (Unit)
-    const estimateSacks = (tons, weightPerSackKg) => {
-        if (!weightPerSackKg || weightPerSackKg === 0) return 0;
-        // Ton * 1000 / kg per sak
-        return Math.round((tons * 1000) / weightPerSackKg);
-    }
-
-    const handleAddItem = () => {
-        if (!newItemType) return;
-        const newItem = {
-            id: Date.now(),
-            type: newItemType,
-            proj: 0,
-            retail: 0,
-            weight: 50 // Default weight
-        };
-        setItems([...items, newItem]);
-        setNewItemType("");
-    };
-
-    const handleDelete = (id) => {
-        setItems(items.filter(item => item.id !== id));
-    };
-
-    const handleUpdate = (id, field, value) => {
-        setItems(items.map(item => 
-            item.id === id ? { ...item, [field]: Number(value) } : item
-        ));
-    };
-
-    const exportCSV = () => {
-        let csvContent = "data:text/csv;charset=utf-8,";
-        csvContent += "Type,Berat Unit(kg),Project Sales(Ton),Project Min Stock(Ton),Est. Sacks,Est. CDD,Retail Type,Retail Sales(Ton),Retail Min Stock(Ton),Est. Sacks,Est. Tronton\n";
-        
-        items.forEach(item => {
-            const projCalc = calculateStock(item.proj, leadTimeProj, safetyBufferProj);
-            const retailCalc = calculateStock(item.retail, leadTimeRetail, safetyBufferRetail);
+        const Icon = ({ name, size = 18, className }) => {
+            const icons = {
+                calculator: <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />, 
+                download: <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />,
+                trash: <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />,
+                plus: <path d="M12 5v14M5 12h14" />,
+                truck: <path d="M1 3h15v13H1zM16 8h4l3 3v5h-7V8zM5.5 19a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3M18.5 19a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3" />,
+                info: <g><circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" /></g>
+            };
             
-            const projLog = calculateLogistics(projCalc.minStock, CAPACITY_CDD);
-            const retailLog = calculateLogistics(retailCalc.minStock, CAPACITY_TRONTON);
+            return (
+                <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                    {icons[name] || icons.info}
+                </svg>
+            );
+        };
 
-            const projSacks = estimateSacks(projCalc.minStock, item.weight);
-            const retailSacks = estimateSacks(retailCalc.minStock, item.weight);
+        const App = () => {
+            const [workDays, setWorkDays] = useState(22);
+            const CAPACITY_CDD = 8;
+            const CAPACITY_TRONTON = 32;
+            const [leadTimeProj, setLeadTimeProj] = useState(7);
+            const [safetyBufferProj, setSafetyBufferProj] = useState(20);
+            const [leadTimeRetail, setLeadTimeRetail] = useState(3);
+            const [safetyBufferRetail, setSafetyBufferRetail] = useState(15);
+            const [items, setItems] = useState(INITIAL_DATA);
+            const [newItemType, setNewItemType] = useState("");
 
-            csvContent += `${item.type},${item.weight},${item.proj},${projCalc.minStock},${projSacks},${projLog.trucks},${item.type},${item.retail},${retailCalc.minStock},${retailSacks},${retailLog.trucks}\n`;
-        });
+            const calculateStock = (totalSalesTons, leadTime, bufferPercent) => {
+                if (totalSalesTons <= 0) return { avg: 0, minStock: 0 };
+                const avgDailyTons = totalSalesTons / workDays;
+                const demandDuringLeadTime = avgDailyTons * leadTime;
+                const safetyStock = demandDuringLeadTime * (bufferPercent / 100);
+                const minStockTons = Math.ceil(demandDuringLeadTime + safetyStock);
+                return { avg: avgDailyTons.toFixed(2), minStock: minStockTons };
+            };
 
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", "min_stock_logistics_tonase.csv");
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    };
+            const calculateLogistics = (tons, truckCapacityTons) => {
+                if (tons <= 0) return { trucks: 0, percentage: 0 };
+                const trucksNeeded = tons / truckCapacityTons;
+                return { trucks: trucksNeeded.toFixed(1), percentage: Math.min((tons / truckCapacityTons) * 100, 100) };
+            };
 
-    return (
-        <div className="min-h-screen bg-gray-50 pb-20 font-sans text-gray-800">
-            {/* Header */}
-            <div className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30">
-                <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex justify-between items-center">
-                    <div>
-                        <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                            <Icon name="truck" className="text-blue-600" />
-                            Kalkulator Stok & Logistik
-                        </h1>
-                        <p className="text-xs text-gray-500">
-                            <strong>Input: Tonase.</strong> Min Stock dengan estimasi muatan CDD & Tronton
-                        </p>
-                    </div>
-                    <button 
-                        onClick={exportCSV}
-                        className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                    >
-                        <Icon name="download" size={14} /> Export Excel
-                    </button>
-                </div>
-            </div>
+            const estimateSacks = (tons, weightPerSackKg) => {
+                if (!weightPerSackKg || weightPerSackKg === 0) return 0;
+                return Math.round((tons * 1000) / weightPerSackKg);
+            }
 
-            <div className="max-w-full mx-auto px-2 py-6 sm:px-6 lg:px-8">
-                
-                {/* Configuration Panel */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    {/* General Settings */}
-                    <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                        <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">Parameter Dasar</h3>
-                        <div className="grid grid-cols-2 gap-3">
-                            <label className="block">
-                                <span className="text-[10px] font-bold text-gray-500 uppercase">Hari Kerja</span>
-                                <input 
-                                    type="number" 
-                                    value={workDays} 
-                                    onChange={(e) => setWorkDays(Number(e.target.value))}
-                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-50 px-2 py-1 text-sm border" 
-                                />
-                            </label>
-                            <label className="block">
-                                <span className="text-[10px] font-bold text-gray-500 uppercase">Berat/Sak (Ref)</span>
-                                <div className="mt-1 text-xs text-gray-400 italic pt-1">Digunakan u/ estimasi sak saja</div>
-                            </label>
+            const handleAddItem = () => {
+                if (!newItemType) return;
+                const newItem = { id: Date.now(), type: newItemType, proj: 0, retail: 0, weight: 50 };
+                setItems([...items, newItem]);
+                setNewItemType("");
+            };
+
+            const handleDelete = (id) => { setItems(items.filter(item => item.id !== id)); };
+
+            const handleUpdate = (id, field, value) => {
+                setItems(items.map(item => item.id === id ? { ...item, [field]: Number(value) } : item));
+            };
+
+            const exportCSV = () => {
+                let csvContent = "data:text/csv;charset=utf-8,Type,Berat Unit(kg),Project Sales(Ton),Project Min Stock(Ton),Est. Sacks,Est. CDD,Retail Sales(Ton),Retail Min Stock(Ton),Est. Sacks,Est. Tronton\n";
+                items.forEach(item => {
+                    const projCalc = calculateStock(item.proj, leadTimeProj, safetyBufferProj);
+                    const retailCalc = calculateStock(item.retail, leadTimeRetail, safetyBufferRetail);
+                    const projLog = calculateLogistics(projCalc.minStock, CAPACITY_CDD);
+                    const retailLog = calculateLogistics(retailCalc.minStock, CAPACITY_TRONTON);
+                    const projSacks = estimateSacks(projCalc.minStock, item.weight);
+                    const retailSacks = estimateSacks(retailCalc.minStock, item.weight);
+                    csvContent += `${item.type},${item.weight},${item.proj},${projCalc.minStock},${projSacks},${projLog.trucks},${item.retail},${retailCalc.minStock},${retailSacks},${retailLog.trucks}\n`;
+                });
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", "min_stock_logistics_tonase.csv");
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            };
+
+            return (
+                <div className="min-h-screen bg-gray-50 pb-20 font-sans text-gray-800">
+                    <div className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30">
+                        <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex justify-between items-center">
+                            <div>
+                                <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                                    <Icon name="truck" className="text-blue-600" />
+                                    Kalkulator Stok & Logistik
+                                </h1>
+                                <p className="text-xs text-gray-500"><strong>Input: Tonase.</strong> Min Stock dengan estimasi muatan CDD & Tronton</p>
+                            </div>
+                            <button onClick={exportCSV} className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors">
+                                <Icon name="download" size={14} /> Export Excel
+                            </button>
                         </div>
                     </div>
-
-                    {/* Project Settings */}
-                    <div className="bg-blue-50 p-4 rounded-lg shadow-sm border border-blue-100">
-                        <h3 className="text-sm font-semibold text-blue-800 mb-3 flex items-center gap-2">
-                            <span className="w-2 h-2 bg-blue-600 rounded-full"></span>
-                            Project (CDD 8 Ton)
-                        </h3>
-                        <div className="grid grid-cols-2 gap-3">
-                            <label className="block">
-                                <span className="text-[10px] font-bold text-blue-600 uppercase">Lead Time (Hari)</span>
-                                <input 
-                                    type="number" 
-                                    value={leadTimeProj} 
-                                    onChange={(e) => setLeadTimeProj(Number(e.target.value))}
-                                    className="mt-1 block w-full rounded border-blue-200 shadow-sm focus:border-blue-500 bg-white px-2 py-1 text-sm border" 
-                                />
-                            </label>
-                            <label className="block">
-                                <span className="text-[10px] font-bold text-blue-600 uppercase">Safety Buffer (%)</span>
-                                <input 
-                                    type="number" 
-                                    value={safetyBufferProj} 
-                                    onChange={(e) => setSafetyBufferProj(Number(e.target.value))}
-                                    className="mt-1 block w-full rounded border-blue-200 shadow-sm focus:border-blue-500 bg-white px-2 py-1 text-sm border" 
-                                />
-                            </label>
+                    <div className="max-w-full mx-auto px-2 py-6 sm:px-6 lg:px-8">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                                <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">Parameter Dasar</h3>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <label className="block"><span className="text-[10px] font-bold text-gray-500 uppercase">Hari Kerja</span><input type="number" value={workDays} onChange={(e) => setWorkDays(Number(e.target.value))} className="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-50 px-2 py-1 text-sm border" /></label>
+                                    <label className="block"><span className="text-[10px] font-bold text-gray-500 uppercase">Berat/Sak (Ref)</span><div className="mt-1 text-xs text-gray-400 italic pt-1">Digunakan u/ estimasi sak saja</div></label>
+                                </div>
+                            </div>
+                            <div className="bg-blue-50 p-4 rounded-lg shadow-sm border border-blue-100">
+                                <h3 className="text-sm font-semibold text-blue-800 mb-3 flex items-center gap-2"><span className="w-2 h-2 bg-blue-600 rounded-full"></span>Project (CDD 8 Ton)</h3>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <label className="block"><span className="text-[10px] font-bold text-blue-600 uppercase">Lead Time (Hari)</span><input type="number" value={leadTimeProj} onChange={(e) => setLeadTimeProj(Number(e.target.value))} className="mt-1 block w-full rounded border-blue-200 shadow-sm focus:border-blue-500 bg-white px-2 py-1 text-sm border" /></label>
+                                    <label className="block"><span className="text-[10px] font-bold text-blue-600 uppercase">Safety Buffer (%)</span><input type="number" value={safetyBufferProj} onChange={(e) => setSafetyBufferProj(Number(e.target.value))} className="mt-1 block w-full rounded border-blue-200 shadow-sm focus:border-blue-500 bg-white px-2 py-1 text-sm border" /></label>
+                                </div>
+                            </div>
+                            <div className="bg-emerald-50 p-4 rounded-lg shadow-sm border border-emerald-100">
+                                <h3 className="text-sm font-semibold text-emerald-800 mb-3 flex items-center gap-2"><span className="w-2 h-2 bg-emerald-600 rounded-full"></span>Retail (Tronton 32 Ton)</h3>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <label className="block"><span className="text-[10px] font-bold text-emerald-600 uppercase">Lead Time (Hari)</span><input type="number" value={leadTimeRetail} onChange={(e) => setLeadTimeRetail(Number(e.target.value))} className="mt-1 block w-full rounded border-emerald-200 shadow-sm focus:border-emerald-500 bg-white px-2 py-1 text-sm border" /></label>
+                                    <label className="block"><span className="text-[10px] font-bold text-emerald-600 uppercase">Safety Buffer (%)</span><input type="number" value={safetyBufferRetail} onChange={(e) => setSafetyBufferRetail(Number(e.target.value))} className="mt-1 block w-full rounded border-emerald-200 shadow-sm focus:border-emerald-500 bg-white px-2 py-1 text-sm border" /></label>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-
-                    {/* Retail Settings */}
-                    <div className="bg-emerald-50 p-4 rounded-lg shadow-sm border border-emerald-100">
-                        <h3 className="text-sm font-semibold text-emerald-800 mb-3 flex items-center gap-2">
-                            <span className="w-2 h-2 bg-emerald-600 rounded-full"></span>
-                            Retail (Tronton 32 Ton)
-                        </h3>
-                        <div className="grid grid-cols-2 gap-3">
-                            <label className="block">
-                                <span className="text-[10px] font-bold text-emerald-600 uppercase">Lead Time (Hari)</span>
-                                <input 
-                                    type="number" 
-                                    value={leadTimeRetail} 
-                                    onChange={(e) => setLeadTimeRetail(Number(e.target.value))}
-                                    className="mt-1 block w-full rounded border-emerald-200 shadow-sm focus:border-emerald-500 bg-white px-2 py-1 text-sm border" 
-                                />
-                            </label>
-                            <label className="block">
-                                <span className="text-[10px] font-bold text-emerald-600 uppercase">Safety Buffer (%)</span>
-                                <input 
-                                    type="number" 
-                                    value={safetyBufferRetail} 
-                                    onChange={(e) => setSafetyBufferRetail(Number(e.target.value))}
-                                    className="mt-1 block w-full rounded border-emerald-200 shadow-sm focus:border-emerald-500 bg-white px-2 py-1 text-sm border" 
-                                />
-                            </label>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Main Table */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-3 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50 border-r w-24 z-10">Tipe</th>
-                                    <th className="px-2 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider w-16 border-r">Berat<br/>Unit (Kg)</th>
-                                    
-                                    {/* Project Header */}
-                                    <th colSpan="2" className="px-2 py-2 text-center text-xs font-bold text-blue-700 bg-blue-50 border-r border-blue-100">
-                                        PROJECT
-                                        <div className="text-[9px] font-normal opacity-75">Target: CDD (8 Ton)</div>
-                                    </th>
-
-                                    {/* Retail Header */}
-                                    <th colSpan="3" className="px-2 py-2 text-center text-xs font-bold text-emerald-700 bg-emerald-50 border-r border-emerald-100">
-                                        RETAIL
-                                        <div className="text-[9px] font-normal opacity-75">Target: Tronton (32 Ton)</div>
-                                    </th>
-                                    
-                                    <th className="w-10"></th>
-                                </tr>
-                                <tr>
-                                    {/* Sub Headers */}
-                                    <th className="sticky left-0 bg-gray-50 border-r"></th>
-                                    <th className="border-r"></th>
-                                    
-                                    <th className="px-2 py-2 text-center text-[10px] font-semibold text-blue-600 bg-blue-50 border-r border-blue-100">Sales (Ton)</th>
-                                    <th className="px-2 py-2 text-left text-[10px] font-semibold text-blue-600 bg-blue-100 border-r border-gray-200 w-48">Min Stock & Logistik</th>
-                                    
-                                    <th className="px-2 py-2 text-left text-[10px] font-semibold text-emerald-600 bg-emerald-50 border-r border-emerald-100">Type</th>
-                                    <th className="px-2 py-2 text-center text-[10px] font-semibold text-emerald-600 bg-emerald-50 border-r border-emerald-100">Sales (Ton)</th>
-                                    <th className="px-2 py-2 text-left text-[10px] font-semibold text-emerald-600 bg-emerald-100 border-r border-gray-200 w-48">Min Stock & Logistik</th>
-                                    
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200 text-sm">
-                                {items.map((item) => {
-                                    const projCalc = calculateStock(item.proj, leadTimeProj, safetyBufferProj);
-                                    const retailCalc = calculateStock(item.retail, leadTimeRetail, safetyBufferRetail);
-                                    
-                                    const projLog = calculateLogistics(projCalc.minStock, CAPACITY_CDD);
-                                    const retailLog = calculateLogistics(retailCalc.minStock, CAPACITY_TRONTON);
-
-                                    return (
-                                        <tr key={item.id} className="hover:bg-gray-50">
-                                            <td className="px-3 py-2 font-medium text-gray-900 sticky left-0 bg-white border-r text-xs">{item.type}</td>
-                                            <td className="px-2 py-2 text-center border-r">
-                                                <input 
-                                                    type="number" 
-                                                    value={item.weight}
-                                                    onChange={(e) => handleUpdate(item.id, 'weight', e.target.value)}
-                                                    className="w-12 text-center text-xs border-b border-gray-200 focus:border-blue-500 focus:outline-none bg-transparent"
-                                                />
-                                            </td>
-                                            
-                                            {/* PROJECT COLUMN */}
-                                            <td className="px-2 py-2 text-center border-r bg-blue-50/30">
-                                                <input 
-                                                    type="number" 
-                                                    value={item.proj}
-                                                    onChange={(e) => handleUpdate(item.id, 'proj', e.target.value)}
-                                                    className="w-16 text-center text-sm font-semibold text-gray-700 border-b border-transparent hover:border-blue-300 focus:border-blue-500 focus:outline-none bg-transparent"
-                                                />
-                                            </td>
-                                            <td className="px-3 py-2 border-r bg-blue-100/30">
-                                                <div className="flex justify-between items-baseline mb-1">
-                                                    <span className="text-lg font-bold text-blue-800">{projCalc.minStock} <span className="text-xs font-normal">Ton</span></span>
-                                                    <span className="text-[9px] text-gray-500 italic">~{estimateSacks(projCalc.minStock, item.weight)} Sak</span>
-                                                </div>
-                                                {/* Bar CDD */}
-                                                <div className="w-full bg-blue-200 rounded-full h-1.5 mb-1">
-                                                    <div className="bg-blue-600 h-1.5 rounded-full" style={{ width: `${projLog.percentage}%` }}></div>
-                                                </div>
-                                                <div className="text-[10px] font-medium text-blue-700 flex justify-between">
-                                                    <span>{projLog.trucks} CDD</span>
-                                                    {projLog.trucks < 1 && projCalc.minStock > 0 && <span className="text-red-500 font-bold">Blm MOQ</span>}
-                                                </div>
-                                            </td>
-
-                                            {/* RETAIL COLUMN */}
-                                            <td className="px-2 py-2 font-medium text-gray-500 border-r bg-emerald-50/30 text-xs">
-                                                {item.type}
-                                            </td>
-                                            <td className="px-2 py-2 text-center border-r bg-emerald-50/30">
-                                                <input 
-                                                    type="number" 
-                                                    value={item.retail}
-                                                    onChange={(e) => handleUpdate(item.id, 'retail', e.target.value)}
-                                                    className="w-16 text-center text-sm font-semibold text-gray-700 border-b border-transparent hover:border-emerald-300 focus:border-emerald-500 focus:outline-none bg-transparent"
-                                                />
-                                            </td>
-                                            <td className="px-3 py-2 border-r bg-emerald-100/30">
-                                                <div className="flex justify-between items-baseline mb-1">
-                                                    <span className="text-lg font-bold text-emerald-800">{retailCalc.minStock} <span className="text-xs font-normal">Ton</span></span>
-                                                    <span className="text-[9px] text-gray-500 italic">~{estimateSacks(retailCalc.minStock, item.weight)} Sak</span>
-                                                </div>
-                                                {/* Bar Tronton */}
-                                                <div className="w-full bg-emerald-200 rounded-full h-1.5 mb-1">
-                                                    <div className="bg-emerald-600 h-1.5 rounded-full" style={{ width: `${retailLog.percentage}%` }}></div>
-                                                </div>
-                                                <div className="text-[10px] font-medium text-emerald-700 flex justify-between">
-                                                    <span>{retailLog.trucks} Tronton</span>
-                                                    {retailLog.trucks < 1 && retailCalc.minStock > 0 && <span className="text-red-500 font-bold">Blm MOQ</span>}
-                                                </div>
-                                            </td>
-
-                                            <td className="px-2 text-center">
-                                                <button onClick={() => handleDelete(item.id)} className="text-gray-400 hover:text-red-500">
-                                                    <Icon name="trash" size={14} />
-                                                </button>
-                                            </td>
+                        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-3 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50 border-r w-24 z-10">Tipe</th>
+                                            <th className="px-2 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider w-16 border-r">Berat<br/>Unit (Kg)</th>
+                                            <th colSpan="2" className="px-2 py-2 text-center text-xs font-bold text-blue-700 bg-blue-50 border-r border-blue-100">PROJECT<div className="text-[9px] font-normal opacity-75">Target: CDD (8 Ton)</div></th>
+                                            <th colSpan="2" className="px-2 py-2 text-center text-xs font-bold text-emerald-700 bg-emerald-50 border-r border-emerald-100">RETAIL<div className="text-[9px] font-normal opacity-75">Target: Tronton (32 Ton)</div></th>
+                                            <th className="w-10"></th>
                                         </tr>
-                                    );
-                                })}
-                                
-                                {/* Input Row */}
-                                <tr className="bg-gray-50 border-t-2 border-gray-100">
-                                    <td className="px-3 py-3 sticky left-0 bg-gray-50 border-r z-10">
-                                        <input 
-                                            type="text" 
-                                            placeholder="Item Baru..." 
-                                            value={newItemType}
-                                            onChange={(e) => setNewItemType(e.target.value)}
-                                            className="w-full text-xs border-gray-300 rounded px-2 py-1"
-                                        />
-                                    </td>
-                                    <td colSpan="6" className="px-4 py-3 text-center">
-                                        <button 
-                                            onClick={handleAddItem}
-                                            disabled={!newItemType}
-                                            className={`w-full py-1.5 rounded text-xs font-bold uppercase tracking-wide transition-colors ${newItemType ? 'bg-gray-800 text-white hover:bg-black' : 'bg-gray-200 text-gray-400'}`}
-                                        >
-                                            + Tambah Item
-                                        </button>
-                                    </td>
-                                    <td></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                {/* Explainer Section */}
-                <div className="mt-8 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                    <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                        <Icon name="info" className="text-blue-600" />
-                        Panduan & Penjelasan Parameter
-                    </h3>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm text-gray-600">
-                        <div className="bg-gray-50 p-4 rounded border border-gray-100">
-                            <h4 className="font-bold text-gray-900 mb-2">⏳ Lead Time (Waktu Tunggu)</h4>
-                            <p>
-                                Waktu (hari) yang dibutuhkan dari <strong>Pesan Barang</strong> sampai <strong>Barang Tiba</strong>.
-                            </p>
-                            <p className="mt-2 text-xs italic text-gray-500">
-                                Fungsi: Menentukan stok dasar yang harus ada agar tidak kehabisan barang saat menunggu kiriman supplier.
-                            </p>
-                        </div>
-
-                        <div className="bg-gray-50 p-4 rounded border border-gray-100">
-                            <h4 className="font-bold text-gray-900 mb-2">🛡️ Safety Buffer (Cadangan)</h4>
-                            <p>
-                                % Stok tambahan untuk antisipasi <strong>lonjakan omset</strong> atau <strong>keterlambatan kiriman</strong>.
-                            </p>
-                            <p className="mt-2 text-xs italic text-gray-500">
-                                Fungsi: "Asuransi" agar stok fisik tidak pernah benar-benar Nol (Stockout).
-                            </p>
-                        </div>
-
-                        <div className="bg-gray-50 p-4 rounded border border-gray-100">
-                            <h4 className="font-bold text-gray-900 mb-2">🚛 Project vs Retail</h4>
-                            <ul className="list-disc pl-4 space-y-1">
-                                <li><strong>Project:</strong> Volume besar, Lead Time biasanya lebih lama, Buffer harus lebih tebal.</li>
-                                <li><strong>Retail:</strong> Fast moving, Lead Time cepat, Buffer bisa lebih tipis.</li>
-                            </ul>
+                                        <tr>
+                                            <th className="sticky left-0 bg-gray-50 border-r"></th><th className="border-r"></th>
+                                            <th className="px-2 py-2 text-center text-[10px] font-semibold text-blue-600 bg-blue-50 border-r border-blue-100">Sales (Ton)</th>
+                                            <th className="px-2 py-2 text-left text-[10px] font-semibold text-blue-600 bg-blue-100 border-r border-gray-200 w-48">Min Stock & Logistik</th>
+                                            <th className="px-2 py-2 text-center text-[10px] font-semibold text-emerald-600 bg-emerald-50 border-r border-emerald-100">Sales (Ton)</th>
+                                            <th className="px-2 py-2 text-left text-[10px] font-semibold text-emerald-600 bg-emerald-100 border-r border-gray-200 w-48">Min Stock & Logistik</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200 text-sm">
+                                        {items.map((item) => {
+                                            const projCalc = calculateStock(item.proj, leadTimeProj, safetyBufferProj);
+                                            const retailCalc = calculateStock(item.retail, leadTimeRetail, safetyBufferRetail);
+                                            const projLog = calculateLogistics(projCalc.minStock, CAPACITY_CDD);
+                                            const retailLog = calculateLogistics(retailCalc.minStock, CAPACITY_TRONTON);
+                                            return (
+                                                <tr key={item.id} className="hover:bg-gray-50">
+                                                    <td className="px-3 py-2 font-medium text-gray-900 sticky left-0 bg-white border-r text-xs">{item.type}</td>
+                                                    <td className="px-2 py-2 text-center border-r"><input type="number" value={item.weight} onChange={(e) => handleUpdate(item.id, 'weight', e.target.value)} className="w-12 text-center text-xs border-b border-gray-200 focus:border-blue-500 focus:outline-none bg-transparent" /></td>
+                                                    <td className="px-2 py-2 text-center border-r bg-blue-50/30"><input type="number" value={item.proj} onChange={(e) => handleUpdate(item.id, 'proj', e.target.value)} className="w-16 text-center text-sm font-semibold text-gray-700 border-b border-transparent hover:border-blue-300 focus:border-blue-500 focus:outline-none bg-transparent" /></td>
+                                                    <td className="px-3 py-2 border-r bg-blue-100/30">
+                                                        <div className="flex justify-between items-baseline mb-1"><span className="text-lg font-bold text-blue-800">{projCalc.minStock} <span className="text-xs font-normal">Ton</span></span><span className="text-[9px] text-gray-500 italic">~{estimateSacks(projCalc.minStock, item.weight)} Sak</span></div>
+                                                        <div className="w-full bg-blue-200 rounded-full h-1.5 mb-1"><div className="bg-blue-600 h-1.5 rounded-full" style={{ width: `${projLog.percentage}%` }}></div></div>
+                                                        <div className="text-[10px] font-medium text-blue-700 flex justify-between"><span>{projLog.trucks} CDD</span>{projLog.trucks < 1 && projCalc.minStock > 0 && <span className="text-red-500 font-bold">Blm MOQ</span>}</div>
+                                                    </td>
+                                                    <td className="px-2 py-2 text-center border-r bg-emerald-50/30"><input type="number" value={item.retail} onChange={(e) => handleUpdate(item.id, 'retail', e.target.value)} className="w-16 text-center text-sm font-semibold text-gray-700 border-b border-transparent hover:border-emerald-300 focus:border-emerald-500 focus:outline-none bg-transparent" /></td>
+                                                    <td className="px-3 py-2 border-r bg-emerald-100/30">
+                                                        <div className="flex justify-between items-baseline mb-1"><span className="text-lg font-bold text-emerald-800">{retailCalc.minStock} <span className="text-xs font-normal">Ton</span></span><span className="text-[9px] text-gray-500 italic">~{estimateSacks(retailCalc.minStock, item.weight)} Sak</span></div>
+                                                        <div className="w-full bg-emerald-200 rounded-full h-1.5 mb-1"><div className="bg-emerald-600 h-1.5 rounded-full" style={{ width: `${retailLog.percentage}%` }}></div></div>
+                                                        <div className="text-[10px] font-medium text-emerald-700 flex justify-between"><span>{retailLog.trucks} Tronton</span>{retailLog.trucks < 1 && retailCalc.minStock > 0 && <span className="text-red-500 font-bold">Blm MOQ</span>}</div>
+                                                    </td>
+                                                    <td className="px-2 text-center"><button onClick={() => handleDelete(item.id)} className="text-gray-400 hover:text-red-500"><Icon name="trash" size={14} /></button></td>
+                                                </tr>
+                                            );
+                                        })}
+                                        <tr className="bg-gray-50 border-t-2 border-gray-100">
+                                            <td className="px-3 py-3 sticky left-0 bg-gray-50 border-r z-10"><input type="text" placeholder="Item Baru..." value={newItemType} onChange={(e) => setNewItemType(e.target.value)} className="w-full text-xs border-gray-300 rounded px-2 py-1" /></td>
+                                            <td colSpan="6" className="px-4 py-3 text-center"><button onClick={handleAddItem} disabled={!newItemType} className={`w-full py-1.5 rounded text-xs font-bold uppercase tracking-wide transition-colors ${newItemType ? 'bg-gray-800 text-white hover:bg-black' : 'bg-gray-200 text-gray-400'}`}>+ Tambah Item</button></td>
+                                            <td></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
+            );
+        };
 
-            </div>
-        </div>
-    );
-};
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
 
-export default App;
+        // --- AKHIR KODE APLIKASI ---
+    </script>
+</body>
+</html>
